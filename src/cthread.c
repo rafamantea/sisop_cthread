@@ -519,25 +519,24 @@ int cjoin(int tid){
 	new_pair->tid = tid;
 	new_pair->threadWaiting = cpu_tcb->tid;
 	
-	if(AppendFila2(it_join, (void *) new_pair) == SUCCESS && AppendFila2(it_blocked, (void *) cpu_tcb) == SUCCESS){
-		
-	}
+	if(AppendFila2(it_join, (void *) new_pair) == SUCCESS && AppendFila2(it_blocked, (void *) cpu_tcb) == SUCCESS){}
 	swapcontext(&cpu_tcb->context, &contextDispatcher);
 	return SUCCESS;  
 }
 
+/**
+1. Muda estado para apto de acordo com a prioridade
+2. Retira da CPU
+3. Faz swap context com o dispatcher
+**/
 int cyield(void){
-  //MUDA ESTADO PARA APTO
-  //RETIRA DA CPU
-  //FAZ SWAP CONTEXT COM DISPATCHER
-
+	
   if (check_initialized() == ERROR) {
 	  return ERROR;
   }
 
-  CPU->state = APTO;
-  if( FirstFila2(&filaAptos) == SUCCESS &&
-      AppendFila2(&filaAptos, (void *) CPU) == SUCCESS){
+  cpu->state = PROCST_APTO;
+  if( FirstFila2(&filaAptos) == SUCCESS && AppendFila2(&filaAptos, (void *) CPU) == SUCCESS){//TODO: reinserir na fila de acordo com a prioridade
       swapcontext(&CPU->context, &contextDispatcher);
       return SUCCESS;
   }
@@ -562,11 +561,9 @@ int csem_init(csem_t *sem, int count){
 }
 
 int cwait(csem_t *sem){
-  if (!initialized) {
-    initialized = initialize();
-    if (initialized == ERROR) {
-      return ERROR;
-    }
+
+  if (check_initialized() == ERROR) {
+	  return ERROR;
   }
 
   if(!sem){
@@ -588,12 +585,12 @@ int cwait(csem_t *sem){
       sem->fila = (FILA2 *) malloc(sizeof(FILA2));
       CreateFila2(sem->fila);
     }
-    CPU->state = BLOQ;
-    if(AppendFila2(sem->fila, (void *) CPU) != SUCCESS || 
-       AppendFila2(&filaBloqueados, (void *) CPU) != SUCCESS){
+    cpu_tcb->state = BLOQ;
+    if(AppendFila2(sem->fila, (void *) cpu_tcb) != SUCCESS || 
+       AppendFila2(it_blocked, (void *) cpu_tcb) != SUCCESS){
       return ERROR;
     }
-    swapcontext(&CPU->context, &contextDispatcher);
+    swapcontext(&cpu_tcb->context, &contextDispatcher);
   }
 
   return SUCCESS;
@@ -630,9 +627,7 @@ int csignal(csem_t *sem){
       free(sem->fila);
       sem->fila = NULL;
     }
-
   }
-
 
   return SUCCESS;
 }
