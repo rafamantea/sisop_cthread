@@ -45,6 +45,8 @@ FILA2 ready_high;
 FILA2 ready_medium;
 FILA2 ready_low;
 
+FILA2 join;
+
 FILA2 blocked;
 
 //Iteradores das filas
@@ -52,6 +54,8 @@ PFILA2 it_ready_very_high;
 PFILA2 it_ready_high;
 PFILA2 it_ready_medium;
 PFILA2 it_ready_low;
+
+PFILA2 it_join;
 
 PFILA2 it_blocked;
 
@@ -305,6 +309,7 @@ int init_queues() {
   it_ready_medium = &ready_medium;
   it_ready_low = &ready_low;
   it_blocked = &blocked;
+  it_join = &join;
   
   if( CreateFila2( it_ready_very_high ) ) {
     printf("Erro ao criar fila apto - VERY HIGH\n");
@@ -324,6 +329,10 @@ int init_queues() {
   }
   if( CreateFila2( it_blocked ) ) {
     printf("Erro ao criar fila bloqueados\n");
+    return 1; //erro
+  }
+  if( CreateFila2( it_join ) ) {
+    printf("Erro ao criar fila join\n");
     return 1; //erro
   }
   
@@ -486,6 +495,7 @@ int ccreate (void *(*start)(void *), void *arg, int prio){
     return new_thread->tid;
 }
 
+<<<<<<< HEAD
 int csetprio(int tid, int prio){
   // procurar em cada uma das filas de apto
 
@@ -518,35 +528,37 @@ int csetprio(int tid, int prio){
 }
 
 
+=======
+/**
+1. Verifica se TID existe nas filas de prioridade APTOS ou Bloqueados.
+2. Verifica se TID já existe na fila de join, ou seja, se alguma thread já está esperando por esse tid.
+3. Adiciona thread na fila Bloqueados, e par Tid, thread waiting na fila Join
+4. Sai de execução
+5. Salva contexto atual
+6. Seta contexto p/ dispatcher
+**/
+>>>>>>> 4c32644b4f4251c5c77bb897693c29ecd3299e9c
 int cjoin(int tid){
-  // VERIFICA DE tid existe na filaAptos ou filaBloqueados ++
-  // VERIFICA SE tid JÁ EXISTE NA filaJoin, ou seja, 
-  //      se uma thread já está esperando por esse tid
-  // ADD THREAD NA filaBloqueados e PAR tid, threadWaiting na filaJoin
-  // SAIR DE EXECUÇÃO
-  // SALVAR CONTEXTO ATUAL
-  // SETAR CONTEXTO PARA DISPATCHER
 
+	if (tid_exists(tid) == ERROR) {
 
-  if (searchForTid(&filaAptos, tid) == ERROR &&
-      searchForTid(&filaBloqueados, tid) == ERROR) {
-    return ERROR;
-  }
+		return ERROR;
+	}
 
-  if(searchInFilaJoin(&filaJoin, tid) == ERROR){
-    return ERROR;
-  }
-  else {
-    CPU->state = BLOQ;
-    BLOCK_join *newPair = (BLOCK_join*) malloc(sizeof(BLOCK_join));
-    newPair->tid = tid;
-    newPair->threadWaiting = CPU->tid;
-    if(AppendFila2(&filaJoin, (void *) newPair) == SUCCESS &&
-      AppendFila2(&filaBloqueados, (void *) CPU) == SUCCESS){
-    }
-    swapcontext(&CPU->context, &contextDispatcher);
-    return SUCCESS;
-  }   
+	if(searchInFilaJoin(it_join, tid) == ERROR){
+		return ERROR;
+	} 
+
+	cpu_tcb->state = PROCST_BLOCK;
+	BLOCK_join *new_pair = (BLOCK_join*) malloc(sizeof(BLOCK_join));
+	new_pair->tid = tid;
+	new_pair->threadWaiting = cpu_tcb->tid;
+	
+	if(AppendFila2(it_join, (void *) new_pair) == SUCCESS && AppendFila2(it_blocked, (void *) cpu_tcb) == SUCCESS){
+		
+	}
+	swapcontext(&cpu_tcb->context, &contextDispatcher);
+	return SUCCESS;  
 }
 
 int cyield(void){
@@ -683,4 +695,14 @@ int cidentify(char *name, int size){
 *
 ****************************************/
 
+int tid_exists(int tid) {
+	if (searchForTid(it_ready_very_high, tid) == ERROR && searchForTid(it_ready_high, tid) == ERROR &&
+	searchForTid(it_ready_medium, tid) == ERROR && searchForTid(it_ready_low, tid) == ERROR &&
+	searchForTid(it_blocked, tid) == ERROR) {
+	  
+		return ERROR;
+  }
+  
+  return SUCCESS;
+}
 
