@@ -495,7 +495,6 @@ int ccreate (void *(*start)(void *), void *arg, int prio){
     return new_thread->tid;
 }
 
-<<<<<<< HEAD
 int csetprio(int tid, int prio){
   // procurar em cada uma das filas de apto
 
@@ -522,13 +521,12 @@ int csetprio(int tid, int prio){
   if( !searchForTid(it_blocked, tid) ) { // se a thread estiver na fila Blocked
     changePriority(it_blocked, prio);
     return SUCCESS;
-  }  
+  }
 
   return ERROR;
+
 }
 
-
-=======
 /**
 1. Verifica se TID existe nas filas de prioridade APTOS ou Bloqueados.
 2. Verifica se TID já existe na fila de join, ou seja, se alguma thread já está esperando por esse tid.
@@ -537,7 +535,7 @@ int csetprio(int tid, int prio){
 5. Salva contexto atual
 6. Seta contexto p/ dispatcher
 **/
->>>>>>> 4c32644b4f4251c5c77bb897693c29ecd3299e9c
+
 int cjoin(int tid){
 
 	if (tid_exists(tid) == ERROR) {
