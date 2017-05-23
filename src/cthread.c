@@ -78,32 +78,33 @@ int clear_cpu() {
   return SUCCESS;
 }
 
-void removeThreadFromBlockedQueue(threadID)
-{
-  // Procura na filaBloqueados por threadID
-  // Retira ela da filaBloqueados e adiciona na filaAptos
+/**
+1.Procura na fila de Bloqueados por threadID
+2.Retira da fila de Bloqueados e adiciona na fila de aptos de acordo com a prioridade
+ **/
+void remove_thread_from_blocked_queue(threadID) {
   TCB_t *ptr;
 
-  if(FirstFila2(&filaBloqueados) == SUCCESS){
-    ptr = (TCB_t *) GetAtIteratorFila2(&filaBloqueados);
+  if(FirstFila2(it_blocked) == SUCCESS){
+    ptr = (TCB_t *) GetAtIteratorFila2(it_blocked);
     if(ptr->tid == threadID){
-      AppendFila2(&filaAptos, (void *) ptr);
-      DeleteAtIteratorFila2(&filaBloqueados);
+	  add_ready_by_priority(ptr);
+      DeleteAtIteratorFila2(it_blocked);
       printf("DESBLOQUEOU TID %d \n", ptr->tid);
       return;
     }
     else{
       int iterator = 0;
       while(iterator == 0){
-        iterator = NextFila2(&filaBloqueados);
-        ptr = (TCB_t *) GetAtIteratorFila2(&filaBloqueados);
+        iterator = NextFila2(it_blocked);
+        ptr = (TCB_t *) GetAtIteratorFila2(it_blocked);
         if(!ptr){
           return;
         }
         else{
           if(ptr->tid == threadID){
-            AppendFila2(&filaAptos, (void *) ptr);
-            DeleteAtIteratorFila2(&filaBloqueados);
+            add_ready_by_priority(ptr);
+            DeleteAtIteratorFila2(it_blocked);
             printf("DESBLOQUEOU TID %d \n", ptr->tid);
           }
         }
@@ -118,17 +119,17 @@ void removeThreadFromBlockedQueue(threadID)
 
 }
 
-void verifyJoinedProcesses(int tidThreadTerminated){
-  // Verificar se EM TODA A filaJoin existe um joinPtr->tid com valor de CPU->tid
-  // Se existir, retira o processo de tid = joinPtr->threadWaiting da filaBloqueados
-  // E dá free em joinPtr malloc BLOCK_join
-  // se não existir retorna;
- 
-
+/**
+1.Verificar se EM TODA A filaJoin existe um joinPtr->tid com valor de CPU->tid
+2.Se existir, retira o processo de tid = joinPtr->threadWaiting da filaBloqueados
+3.E dá free em joinPtr malloc BLOCK_join
+4.se não existir retorna;
+**/
+void check_joined_processes(int tidThreadTerminated){
   if (FirstFila2(&filaJoin) == SUCCESS) {
     joinPtr = (BLOCK_join *) GetAtIteratorFila2(&filaJoin);
     if(joinPtr->tid == tidThreadTerminated){
-      removeThreadFromBlockedQueue(joinPtr->threadWaiting);
+      remove_thread_from_blocked_queue(joinPtr->threadWaiting);
       DeleteAtIteratorFila2(&filaJoin);
       free(joinPtr);
       joinPtr = NULL;
@@ -142,7 +143,7 @@ void verifyJoinedProcesses(int tidThreadTerminated){
       }
       else{
         if(joinPtr->tid == tidThreadTerminated){
-          removeThreadFromBlockedQueue(joinPtr->threadWaiting);
+          remove_thread_from_blocked_queue(joinPtr->threadWaiting);
           DeleteAtIteratorFila2(&filaJoin);
           free(joinPtr);
           joinPtr = NULL;
@@ -161,7 +162,7 @@ void terminate(){
   //                                DESBLOQUEIA O PROCESSO;
   // VERIFICAR FILA DE SEMÁFORO -> CWAIT() / CSIGNAL()
   // RETIRA PROCESSO DE ESTADO EXECUTANDO
-  verifyJoinedProcesses(cpu_tcb->tid);
+  check_joined_processes(cpu_tcb->tid);
   clear_cpu();
   setcontext(&context_dispatcher);
 }
@@ -407,9 +408,9 @@ int cyield(void){
 	  return ERROR;
   }
 
-  cpu->state = PROCST_APTO;
-  if( FirstFila2(&filaAptos) == SUCCESS && AppendFila2(&filaAptos, (void *) CPU) == SUCCESS){//TODO: reinserir na fila de acordo com a prioridade
-      swapcontext(&CPU->context, &contextDispatcher);
+  cpu_tcb->state = PROCST_APTO;
+  if( FirstFila2(&filaAptos) == SUCCESS && add_ready_by_priority(cpu_tcb) == SUCCESS){//TODO: reinserir na fila de acordo com a prioridade
+      swapcontext(&cpu_tcb->context, &contextDispatcher);
       return SUCCESS;
   }
   return ERROR;
@@ -490,10 +491,10 @@ int csignal(csem_t *sem){
   if(sem->fila){
 
     FirstFila2(sem->fila);
-    TCB_t *unlockedThread = (TCB_t *) GetAtIteratorFila2(sem->fila);
-    unlockedThread->state = APTO;
-    AppendFila2(&filaAptos, (void *) unlockedThread);
-    deleteFromBlockedQueue(&filaBloqueados, unlockedThread->tid);
+    TCB_t *unlocked_thread = (TCB_t *) GetAtIteratorFila2(sem->fila);
+    unlocked_thread->state = PROCST_APTO;
+	add_ready_by_priority(unlocked_thread);
+    deleteFromBlockedQueue(it_blocked, unlocked_thread->tid);
     DeleteAtIteratorFila2(sem->fila);
     if(FirstFila2(sem->fila)!= SUCCESS){
       free(sem->fila);
@@ -505,10 +506,10 @@ int csignal(csem_t *sem){
 }
 
 int cidentify(char *name, int size){
-  char students[] = "Rafael Amantea - 228433\n Mauricio Carmelo - xxxxxx";
-  int realSize = sizeof(students);
+  char students[] = "Rafael Amantea - 228433\n Mauricio Carmelo - 273165";
+  int real_size = sizeof(students);
   int i = 0;
-  if (size <= 0 || size > realSize) {
+  if (size <= 0 || size > real_size) {
     return ERROR;
   }
 
