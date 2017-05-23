@@ -41,6 +41,22 @@ FILA2 filaBloqueados;
 FILA2 filaJoin;
 int uninitializedDependencies = 1;
 
+//Filas 
+FILA2 ready_very_high;
+FILA2 ready_high;
+FILA2 ready_medium;
+FILA2 ready_low;
+
+FILA2 blocked;
+
+//Iteradores das filas
+PFILA2 it_ready_very_high;
+PFILA2 it_ready_high;
+PFILA2 it_ready_medium;
+PFILA2 it_ready_low;
+
+PFILA2 it_blocked;
+
 
 
 /*******************************************************************************
