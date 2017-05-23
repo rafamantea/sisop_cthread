@@ -16,6 +16,11 @@
 #define STACK_SIZE SIGSTKSZ
 #define MAIN_TID 0
 
+#define VERY_HIGH 0
+#define HIGH 1
+#define MEDIUM 2
+#define LOW 3
+
 /***************************************
 *
 * VARIÁVEIS GLOBAIS
@@ -76,12 +81,11 @@ ucontext_t context_finish;
 * FUNÇÕES ESCALONADOR
 *
 ****************************************/
-int clearCPU()
-{
-  if (CPU->tid != MAIN_TID) {
-    free(CPU->context.uc_stack.ss_sp);
-    free(CPU);
-    CPU = NULL;
+int clear_cpu() {
+  if (cpu_tcb->tid != MAIN_TID) {
+    free(cpu_tcb->context.uc_stack.ss_sp);
+    free(cpu_tcb);
+    cpu_tcb = NULL;
   }
   return SUCCESS;
 
@@ -171,7 +175,7 @@ void terminate(){
   // VERIFICAR FILA DE SEMÁFORO -> CWAIT() / CSIGNAL()
   // RETIRA PROCESSO DE ESTADO EXECUTANDO
   verifyJoinedProcesses(cpu_tcb->tid);
-  clearCPU();
+  clear_cpu();
   setcontext(&context_dispatcher);
 }
 
@@ -535,7 +539,10 @@ int csetprio(int tid, int prio){
 5. Salva contexto atual
 6. Seta contexto p/ dispatcher
 **/
+<<<<<<< HEAD
 
+=======
+>>>>>>> 04c5424a32b4271cd27829dce5f954cf807e6a19
 int cjoin(int tid){
 
 	if (tid_exists(tid) == ERROR) {
@@ -552,25 +559,24 @@ int cjoin(int tid){
 	new_pair->tid = tid;
 	new_pair->threadWaiting = cpu_tcb->tid;
 	
-	if(AppendFila2(it_join, (void *) new_pair) == SUCCESS && AppendFila2(it_blocked, (void *) cpu_tcb) == SUCCESS){
-		
-	}
+	if(AppendFila2(it_join, (void *) new_pair) == SUCCESS && AppendFila2(it_blocked, (void *) cpu_tcb) == SUCCESS){}
 	swapcontext(&cpu_tcb->context, &contextDispatcher);
 	return SUCCESS;  
 }
 
+/**
+1. Muda estado para apto de acordo com a prioridade
+2. Retira da CPU
+3. Faz swap context com o dispatcher
+**/
 int cyield(void){
-  //MUDA ESTADO PARA APTO
-  //RETIRA DA CPU
-  //FAZ SWAP CONTEXT COM DISPATCHER
-
+	
   if (check_initialized() == ERROR) {
 	  return ERROR;
   }
 
-  CPU->state = APTO;
-  if( FirstFila2(&filaAptos) == SUCCESS &&
-      AppendFila2(&filaAptos, (void *) CPU) == SUCCESS){
+  cpu->state = PROCST_APTO;
+  if( FirstFila2(&filaAptos) == SUCCESS && AppendFila2(&filaAptos, (void *) CPU) == SUCCESS){//TODO: reinserir na fila de acordo com a prioridade
       swapcontext(&CPU->context, &contextDispatcher);
       return SUCCESS;
   }
@@ -595,11 +601,9 @@ int csem_init(csem_t *sem, int count){
 }
 
 int cwait(csem_t *sem){
-  if (!initialized) {
-    initialized = initialize();
-    if (initialized == ERROR) {
-      return ERROR;
-    }
+
+  if (check_initialized() == ERROR) {
+	  return ERROR;
   }
 
   if(!sem){
@@ -621,12 +625,12 @@ int cwait(csem_t *sem){
       sem->fila = (FILA2 *) malloc(sizeof(FILA2));
       CreateFila2(sem->fila);
     }
-    CPU->state = BLOQ;
-    if(AppendFila2(sem->fila, (void *) CPU) != SUCCESS || 
-       AppendFila2(&filaBloqueados, (void *) CPU) != SUCCESS){
+    cpu_tcb->state = BLOQ;
+    if(AppendFila2(sem->fila, (void *) cpu_tcb) != SUCCESS || 
+       AppendFila2(it_blocked, (void *) cpu_tcb) != SUCCESS){
       return ERROR;
     }
-    swapcontext(&CPU->context, &contextDispatcher);
+    swapcontext(&cpu_tcb->context, &contextDispatcher);
   }
 
   return SUCCESS;
@@ -663,9 +667,7 @@ int csignal(csem_t *sem){
       free(sem->fila);
       sem->fila = NULL;
     }
-
   }
-
 
   return SUCCESS;
 }
