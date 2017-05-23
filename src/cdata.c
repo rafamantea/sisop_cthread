@@ -35,16 +35,7 @@ int adicionarNaFila(PFILA2 fila, PNODE2 pnodo) {
   return AppendFila2(fila, pnodo);
 }
 
-int insertTCB_at_queue(PFILA2 fila, TCB_t* tcb) {
-  PNODE2 pnodo = malloc(sizeof(NODE2)); // alocar espaço para um novo nodo na fila
-  pnodo->node = tcb;
 
-  if ( AppendFila2(fila, pnodo) ){
-    printf( "Erro ao inserir TCB na fila");
-    return 1;
-  }
-  return 0;
-}
 
 int searchForTid(PFILA2 fila, int tid)
 {
@@ -84,10 +75,11 @@ int searchForTid(PFILA2 fila, int tid)
 int changePriority(PFILA2 pfila, int prio) {
   TCB_t *tcb;
   tcb = (TCB_t *) GetAtIteratorFila2(pfila);
-  tcb->tid = prio;
+  tcb->ticket = prio;
+  return 0;
 }
 
-int searchInFilaJoin(PFILA2 filaJoin, int tid) {
+/*int searchInFilaJoin(PFILA2 filaJoin, int tid) {
   int first;
   first = FirstFila2(filaJoin);
   if (first == 0) {
@@ -110,7 +102,7 @@ int searchInFilaJoin(PFILA2 filaJoin, int tid) {
   }
 
   return SUCCESS;
-}
+}*/
 
 void deleteFromBlockedQueue(PFILA2 filaBloqueados, int tid){
   int first;
@@ -164,50 +156,9 @@ void runsThroughQueue(PFILA2 fila)
 // *****************************************************************
 
 
-int add_ready_by_priority(int prio, TCB_t* tcb) {
-  switch(prio) {
-    case VERY_HIGH:
-      return insertTCB_at_queue(ready_very_high, tcb);
-    case HIGH:
-      return insertTCB_at_queue(ready_high, tcb);
-    case MEDIUM:
-      return insertTCB_at_queue(ready_medium, tcb);
-    case LOW:
-      return insertTCB_at_queue(ready_low, tcb);
-    default:
-      return 1;
-  }
-}
 
-int add_ready_by_priority(TCB_t* tcb) {
-  return add_ready_by_priority(tcb->ticket, tcb);
-}
 
-int blocked_to_ready(int tid) {
-    TCB_t* tcb;
-    TCB_t* tcb_aux = (TCB_t*) malloc(sizeof(TCB_t));
-
-    if (FirstFila2(blocked) == 0){
-        tcb = (TCB_t*) GetAtIteratorFila2(blocked);
-        while(tcb != NULL){
-            if(tcb->tid == tid){
-                *tcb_aux = *tcb;
-                if (DeleteAtIteratorFila2(blocked) == 0){
-                    tcb_aux->state = PROCST_APTO;
-                    add_ready_by_priority(tcb_aux);
-                    return 0;
-                }
-                else{
-                    return -1;
-                }
-            }
-            NextFila2(blocked);
-            tcb = (TCB_t*) GetAtIteratorFila2(blocked);
-        }
-    }
-    return -1;  
-}
-
+/**
 int queue_has_tcb(PFILA2 queue, int tid){
     TCB_t* tcb;
 
@@ -233,8 +184,8 @@ int queue_has_tcb(PFILA2 queue, int tid){
         }
     }
     return 1;
-}
-
+}*/
+/*
 TCB_t * get_tcb(PFILA2 queue, int tid) {
   TCB_t* tcb;
 
@@ -250,9 +201,9 @@ TCB_t * get_tcb(PFILA2 queue, int tid) {
     }
   }
   return NULL;
-}
+}*/
 
-TCB_t * get_tcb_by_tid(int tid) {
+/*TCB_t * get_tcb_by_tid(int tid) {
   if(queue_has_tcb(ready_very_high, tid) {
     return get_tcb(ready_very_high, tid);
   
@@ -271,8 +222,9 @@ TCB_t * get_tcb_by_tid(int tid) {
   
   return NULL;
 }
+*/
 
-int tid_exists(int tid) {
+/*int tid_exists(int tid) {
   if (searchForTid(it_ready_very_high, tid) == ERROR && searchForTid(it_ready_high, tid) == ERROR &&
   searchForTid(it_ready_medium, tid) == ERROR && searchForTid(it_ready_low, tid) == ERROR &&
   searchForTid(it_blocked, tid) == ERROR) {
@@ -281,5 +233,5 @@ int tid_exists(int tid) {
   }
   
   return SUCCESS;
-}
+}*/
 

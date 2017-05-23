@@ -66,6 +66,18 @@ ucontext_t context_finish;
 
 /***************************************
 *
+*	DECLARAÇÃO DE FUNÇÕES AUXILIARES
+*
+***************************************/
+int has_thread_in_ready_queue();
+int insertTCB_at_queue(PFILA2 fila, TCB_t* tcb);
+int add_ready_by_priority2(int prio, TCB_t* tcb);
+int add_ready_by_priority(TCB_t* tcb);
+void remove_thread_from_blocked_queue(threadID);
+
+
+/***************************************
+*
 * FUNÇÕES ESCALONADOR
 *
 ****************************************/
@@ -76,47 +88,6 @@ int clear_cpu() {
     cpu_tcb = NULL;
   }
   return SUCCESS;
-}
-
-/**
-1.Procura na fila de Bloqueados por threadID
-2.Retira da fila de Bloqueados e adiciona na fila de aptos de acordo com a prioridade
- **/
-void remove_thread_from_blocked_queue(threadID) {
-  TCB_t *ptr;
-
-  if(FirstFila2(it_blocked) == SUCCESS){
-    ptr = (TCB_t *) GetAtIteratorFila2(it_blocked);
-    if(ptr->tid == threadID){
-	  add_ready_by_priority(ptr);
-      DeleteAtIteratorFila2(it_blocked);
-      printf("DESBLOQUEOU TID %d \n", ptr->tid);
-      return;
-    }
-    else{
-      int iterator = 0;
-      while(iterator == 0){
-        iterator = NextFila2(it_blocked);
-        ptr = (TCB_t *) GetAtIteratorFila2(it_blocked);
-        if(!ptr){
-          return;
-        }
-        else{
-          if(ptr->tid == threadID){
-            add_ready_by_priority(ptr);
-            DeleteAtIteratorFila2(it_blocked);
-            printf("DESBLOQUEOU TID %d \n", ptr->tid);
-          }
-        }
-      }
-      return;
-    }
-
-  }
-  else{
-    return;
-  }
-
 }
 
 /**
@@ -157,12 +128,13 @@ void check_joined_processes(int tidThreadTerminated){
   }
 }
 
+ /**
+ 1. Verifica fila de bloqueados: se alguem estiver bloqueado, desbloqueia o processo;
+ 2. Verifica fila de semáforo: cwait() / csignal()
+ 3. Retira processo do estado executando
+ 4. check_joined_processes(cpu_tcb->tid);
+ **/
 void terminate(){
-  //VERIFICAR FILA DE BLOQUEADOS -> SE ALGUM ESTIVER BLOQUEADO,
-  //                                DESBLOQUEIA O PROCESSO;
-  // VERIFICAR FILA DE SEMÁFORO -> CWAIT() / CSIGNAL()
-  // RETIRA PROCESSO DE ESTADO EXECUTANDO
-  check_joined_processes(cpu_tcb->tid);
   clear_cpu();
   setcontext(&context_dispatcher);
 }
@@ -173,6 +145,7 @@ void dispatch() {
 
   setcontext(&cpu_tcb->context);
 }
+
 
 /***************************************
 *
@@ -217,14 +190,14 @@ int init_queues() {
 
 int init_main_thread_context() { 
   //current_thread_context = (TCB_t*)criarTCB(0, current_thread_context);
-  main_thread.id = 0;
+  main_thread.tid = 0;
   main_thread.state = PROCST_EXEC;
   main_thread.ticket = 0;  // nao se usa a prioridade nessa caso
 
   getcontext(&main_thread.context);
   cpu_tcb = &main_thread;
 
-  if (Escalonador == NULL) {
+  if (cpu_tcb == NULL) {
     return ERROR; //erro
   }
   return SUCCESS;
@@ -285,7 +258,7 @@ int initialize() {
   return SUCCESS;
 }
 
-void check_initialized() {
+int check_initialized() {
 	if (!initialized) {
 		initialized = initialize();
 		if (initialized == ERROR) {
@@ -320,14 +293,14 @@ int ccreate (void *(*start)(void *), void *arg, int prio){
     return ERROR; // Erro ao alocar espaço para thread
   }
   new_thread->context.uc_stack.ss_size = STACK_SIZE;
-  new_thread->context.uc_link = &contextTerminator;
+  new_thread->context.uc_link = &context_finish;
 
   makecontext(&new_thread->context, (void(*)(void))start, 1, arg);
 
   tid_count++;
 
   int added_to_ready;
-  added_to_ready = add_ready_by_priority(tcb, prio);
+  added_to_ready = add_ready_by_priority(new_thread);
 
   if (added_to_ready != SUCCESS) {
     return ERROR;
@@ -336,6 +309,7 @@ int ccreate (void *(*start)(void *), void *arg, int prio){
     return new_thread->tid;
 }
 
+/**
 int csetprio(int tid, int prio){
   // procurar em cada uma das filas de apto
 
@@ -366,7 +340,7 @@ int csetprio(int tid, int prio){
 
   return ERROR;
 
-}
+}*/
 
 /**
 1. Verifica se TID existe nas filas de prioridade APTOS ou Bloqueados.
@@ -375,7 +349,6 @@ int csetprio(int tid, int prio){
 4. Sai de execução
 5. Salva contexto atual
 6. Seta contexto p/ dispatcher
-**/
 int cjoin(int tid){
 
 	if (tid_exists(tid) == ERROR) {
@@ -393,15 +366,16 @@ int cjoin(int tid){
 	new_pair->threadWaiting = cpu_tcb->tid;
 	
 	if(AppendFila2(it_join, (void *) new_pair) == SUCCESS && AppendFila2(it_blocked, (void *) cpu_tcb) == SUCCESS){}
-	swapcontext(&cpu_tcb->context, &contextDispatcher);
+	swapcontext(&cpu_tcb->context, &context_dispatcher);
 	return SUCCESS;  
 }
+*/
 
 /**
 1. Muda estado para apto de acordo com a prioridade
 2. Retira da CPU
 3. Faz swap context com o dispatcher
-**/
+*/
 int cyield(void){
 	
   if (check_initialized() == ERROR) {
@@ -409,14 +383,16 @@ int cyield(void){
   }
 
   cpu_tcb->state = PROCST_APTO;
-  if( FirstFila2(&filaAptos) == SUCCESS && add_ready_by_priority(cpu_tcb) == SUCCESS){//TODO: reinserir na fila de acordo com a prioridade
-      swapcontext(&cpu_tcb->context, &contextDispatcher);
+
+  if( has_thread_in_ready_queue() == SUCCESS && add_ready_by_priority(cpu_tcb) == SUCCESS){
+      swapcontext(&cpu_tcb->context, &context_dispatcher);
       return SUCCESS;
   }
   return ERROR;
 
 }
 
+/*
 int csem_init(csem_t *sem, int count){
 
   if (check_initialized() == ERROR) {
@@ -432,7 +408,8 @@ int csem_init(csem_t *sem, int count){
 
   return SUCCESS;
 }
-
+*/
+/*
 int cwait(csem_t *sem){
 
   if (check_initialized() == ERROR) {
@@ -468,7 +445,8 @@ int cwait(csem_t *sem){
 
   return SUCCESS;
 }
-
+*/
+/*
 int csignal(csem_t *sem){
 
   if (check_initialized() == ERROR) {
@@ -505,6 +483,8 @@ int csignal(csem_t *sem){
   return SUCCESS;
 }
 
+*/
+/*
 int cidentify(char *name, int size){
   char students[] = "Rafael Amantea - 228433\n Mauricio Carmelo - 273165";
   int real_size = sizeof(students);
@@ -520,9 +500,95 @@ int cidentify(char *name, int size){
   }
   return SUCCESS;
 }
-
+*/
 /***************************************
 *
 * FUNÇÕES AUXILIARES
 *
 ****************************************/
+
+int has_thread_in_ready_queue() {
+	if(FirstFila2(it_ready_very_high) == SUCCESS) {
+		return SUCCESS;
+	} else if(FirstFila2(it_ready_high) == SUCCESS) {
+		return SUCCESS;
+	} else if(FirstFila2(it_ready_medium) == SUCCESS) {
+		return SUCCESS;
+	} else if(FirstFila2(it_ready_low) == SUCCESS) {
+		return SUCCESS;
+	}
+	return ERROR;
+}
+
+int insertTCB_at_queue(PFILA2 fila, TCB_t* tcb) {
+  PNODE2 pnodo = malloc(sizeof(NODE2)); // alocar espaço para um novo nodo na fila
+  pnodo->node = tcb;
+
+  if ( AppendFila2(fila, pnodo) ){
+    printf( "Erro ao inserir TCB na fila");
+    return 1;
+  }
+  //printf("Inserido na fila de prioridade %d\n", tcb->ticket);
+  return 0;
+}
+
+int add_ready_by_priority2(int prio, TCB_t* tcb) {
+  switch(prio) {
+    case VERY_HIGH:
+      return insertTCB_at_queue(it_ready_very_high, tcb);
+    case HIGH:
+      return insertTCB_at_queue(it_ready_high, tcb);
+    case MEDIUM:
+      return insertTCB_at_queue(it_ready_medium, tcb);
+    case LOW:
+      return insertTCB_at_queue(it_ready_low, tcb);
+    default:
+      return 1;
+  }
+}
+
+int add_ready_by_priority(TCB_t* tcb) {
+  return add_ready_by_priority2(tcb->ticket, tcb);
+}
+
+
+/**
+1.Procura na fila de Bloqueados por threadID
+2.Retira da fila de Bloqueados e adiciona na fila de aptos de acordo com a prioridade
+ **/
+void remove_thread_from_blocked_queue(threadID) {
+  TCB_t *ptr;
+
+  if(FirstFila2(it_blocked) == SUCCESS){
+    ptr = (TCB_t *) GetAtIteratorFila2(it_blocked);
+    if(ptr->tid == threadID){
+	  add_ready_by_priority(ptr);
+      DeleteAtIteratorFila2(it_blocked);
+      printf("DESBLOQUEOU TID %d \n", ptr->tid);
+      return;
+    }
+    else{
+      int iterator = 0;
+      while(iterator == 0){
+        iterator = NextFila2(it_blocked);
+        ptr = (TCB_t *) GetAtIteratorFila2(it_blocked);
+        if(!ptr){
+          return;
+        }
+        else{
+          if(ptr->tid == threadID){
+            add_ready_by_priority(ptr);
+            DeleteAtIteratorFila2(it_blocked);
+            printf("DESBLOQUEOU TID %d \n", ptr->tid);
+          }
+        }
+      }
+      return;
+    }
+
+  }
+  else{
+    return;
+  }
+
+}
