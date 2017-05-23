@@ -16,6 +16,11 @@
 #define STACK_SIZE SIGSTKSZ
 #define MAIN_TID 0
 
+#define VERY_HIGH 0
+#define HIGH 1
+#define MEDIUM 2
+#define LOW 3
+
 /***************************************
 *
 * VARIÁVEIS GLOBAIS
@@ -76,12 +81,11 @@ ucontext_t context_finish;
 * FUNÇÕES ESCALONADOR
 *
 ****************************************/
-int clearCPU()
-{
-  if (CPU->tid != MAIN_TID) {
-    free(CPU->context.uc_stack.ss_sp);
-    free(CPU);
-    CPU = NULL;
+int clear_cpu() {
+  if (cpu_tcb->tid != MAIN_TID) {
+    free(cpu_tcb->context.uc_stack.ss_sp);
+    free(cpu_tcb);
+    cpu_tcb = NULL;
   }
   return SUCCESS;
 
@@ -171,7 +175,7 @@ void terminate(){
   // VERIFICAR FILA DE SEMÁFORO -> CWAIT() / CSIGNAL()
   // RETIRA PROCESSO DE ESTADO EXECUTANDO
   verifyJoinedProcesses(cpu_tcb->tid);
-  clearCPU();
+  clear_cpu();
   setcontext(&context_dispatcher);
 }
 
@@ -495,7 +499,6 @@ int ccreate (void *(*start)(void *), void *arg, int prio){
     return new_thread->tid;
 }
 
-<<<<<<< HEAD
 int csetprio(int tid, int prio){
   // procurar em cada uma das filas de apto
 
@@ -528,7 +531,6 @@ int csetprio(int tid, int prio){
 }
 
 
-=======
 /**
 1. Verifica se TID existe nas filas de prioridade APTOS ou Bloqueados.
 2. Verifica se TID já existe na fila de join, ou seja, se alguma thread já está esperando por esse tid.
@@ -537,7 +539,6 @@ int csetprio(int tid, int prio){
 5. Salva contexto atual
 6. Seta contexto p/ dispatcher
 **/
->>>>>>> 4c32644b4f4251c5c77bb897693c29ecd3299e9c
 int cjoin(int tid){
 
 	if (tid_exists(tid) == ERROR) {
