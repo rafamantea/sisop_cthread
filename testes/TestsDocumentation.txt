@@ -1,0 +1,59 @@
+########################################################
+##		CÓDIGOS UTILIZADOS                    ##
+##	  	    SUCCESS = 0                       ##
+##		    ERROR = -1                        ##
+########################################################
+
+
+########################################################
+## Documentação Testes Unitários - Trabalho Prático I ##
+########################################################
+
+######################################################## 
+##                 testCreate.c                       ##
+########################################################
+ Função de teste unitário para criação de threads: ccreate()
+ 
+ Cada print mostrará o valor do Tid da thread criada. 
+ Caso a thread seja gerada incorretamente, o código de ERROR deverá ser mostrado.
+
+######################################################## 
+##                 testIdentify.c                     ##
+########################################################
+ Função de teste unitário para função de identificação do grupo: cidentify()
+ 
+ Função verifica se ponteiro é valido e se tamanho dado para identificação do grupo não excede o tamanho limite se é menor ou igual a zero.
+ Caso tamanho passado como argumento exceda o valor real da string com identificaçao do grupo, o programa retorna código de ERROR.
+ Caso ponteiro e tamanho sejam válidos, retorna código de SUCCESS.
+ Por fim, é escrito a idenficação do grupo utilizando a área de memória informada pelo usuário.
+
+######################################################## 
+##                 testJoin.c                         ##
+########################################################
+ Função de teste unitário da função de join: cjoin()
+ 
+ É testado se cjoin funcionou a partir dos retorno nos prints.
+ Caso cjoin tenha funcionado deve ser printado a mensagem "Retorno de cjoin(tid) é: 0", se não a mensagem printada é "Retorno de cjoin(tid) é: -1". O erro acontecerá, caso a thread solicitada para join não seja encontrada nem na fila de aptos nem na fila de bloqueados.
+ Após cjoin main printa uma indicando fim de programa.
+
+
+######################################################## 
+##                 testYield.c                        ##
+########################################################
+ Função de teste unitário da função de Yield: cyield()
+  
+ Foram criadas 5 threads inicialmente. A main chama cyield() seis vezes.
+ Espera-se que todas as threads sejam executadas e que os cyields retornem valor de SUCCESS.
+ Se algum cyield() falhar, deverá ser printado o valor de ERROR na tela.
+ 
+ Para cada retorno que ocorre após um cyield, será printada a mensagem "Voltou do <> cyield MAIN", para informar ao usuário que thread main voltou a executar.
+
+######################################################## 
+##                 testSemaforo.c                     ##
+########################################################
+  Função de teste unitário da funções de Semaforo: csem_init(), cwait() e csignal()
+  
+  Para testar os semáforos usamos o teste Philosophers.c fornecido pelo professor.
+
+
+
