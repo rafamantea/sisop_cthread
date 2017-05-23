@@ -13,12 +13,6 @@
 #define SUCCESS 0
 #define ERROR -1
 
-#define PROCST_CRIACAO  0
-#define PROCST_APTO 1
-#define PROCST_EXEC 2
-#define PROCST_BLOQ 3
-#define PROCST_TERMINO  4
-
 #define stackSize SIGSTKSZ
 
 
@@ -39,6 +33,17 @@ TCB_t* criarTCB(int tid, ucontext_t contexto) {
 
 int adicionarNaFila(PFILA2 fila, PNODE2 pnodo) {
   return AppendFila2(fila, pnodo);
+}
+
+int insertTCB_at_queue(PFILA2 fila, TCB_t* tcb) {
+  PNODE2 pnodo = malloc(sizeof(NODE2)); // alocar espaço para um novo nodo na fila
+  pnodo->node = tcb;
+
+  if ( AppendFila2(fila, pnodo) ){
+    printf( "Erro ao inserir TCB na fila");
+    return 1;
+  }
+  return 0;
 }
 
 /*int createQueue(PFILA2 fila)
