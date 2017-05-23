@@ -9,23 +9,18 @@
 #include <ucontext.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdint.h> // Usada para gerar ticket com uint8_t
 
 #define SUCCESS 0
 #define ERROR -1
 
-#define PROCST_CRIACAO  0
-#define PROCST_APTO 1
-#define PROCST_EXEC 2
-#define PROCST_BLOQ 3
-#define PROCST_TERMINO  4
+#define STACK_SIZE SIGSTKSZ
+#define MAIN_TID 0
 
-#define stackSize SIGSTKSZ
-#define MAINTID 0
-
-/************
+/***************************************
+*
 * VARIÁVEIS GLOBAIS
-************/
+*
+****************************************/
 
 // Contextos para execução de funções de escalonador e de finalizador de threads
 //ucontext_t contextDispatcher, contextTerminator;
@@ -38,7 +33,7 @@ int tid = 1; //Mantém tid global para enumerar threads
 //FILA2 filaAptos;
 //FILA2 filaBloqueados;
 //FILA2 filaJoin;
-int uninitializedDependencies = 1;
+int initialized = 0;
 
 /*
 *** NOSSAS VARIÁVEIS
@@ -60,25 +55,26 @@ PFILA2 it_ready_low;
 
 PFILA2 it_blocked;
 
-//Simboliza o processador
-TCB_t *Processador;
+//Simboliza o Processador
+TCB_t *cpu_tcb;
 
 //main thread
-TCB_t mainThread;
+TCB_t main_thread;
 
 //context do dispatcher
 ucontext_t context_dispatcher;
 ucontext_t context_finish;
 
 
-/*******************************************************************************
-********************************************************************************
-* ******************************     FUNÇÕES ESCALONADOR
-********************************************************************************
-*******************************************************************************/
+
+/***************************************
+*
+* FUNÇÕES ESCALONADOR
+*
+****************************************/
 int clearCPU()
 {
-  if (CPU->tid != MAINTID) {
+  if (CPU->tid != MAIN_TID) {
     free(CPU->context.uc_stack.ss_sp);
     free(CPU);
     CPU = NULL;
@@ -127,8 +123,7 @@ void removeThreadFromBlockedQueue(threadID)
 
 }
 
-void verifyJoinedProcesses(int tidThreadTerminated)
-{
+void verifyJoinedProcesses(int tidThreadTerminated){
   // Verificar se EM TODA A filaJoin existe um joinPtr->tid com valor de CPU->tid
   // Se existir, retira o processo de tid = joinPtr->threadWaiting da filaBloqueados
   // E dá free em joinPtr malloc BLOCK_join
@@ -166,15 +161,12 @@ void verifyJoinedProcesses(int tidThreadTerminated)
   }
 }
 
-
-
-void terminate()
-{
+void terminate(){
   //VERIFICAR FILA DE BLOQUEADOS -> SE ALGUM ESTIVER BLOQUEADO,
   //                                DESBLOQUEIA O PROCESSO;
   // VERIFICAR FILA DE SEMÁFORO -> CWAIT() / CSIGNAL()
   // RETIRA PROCESSO DE ESTADO EXECUTANDO
-  verifyJoinedProcesses(Processador->tid);
+  verifyJoinedProcesses(cpu_tcb->tid);
   clearCPU();
   setcontext(&context_dispatcher);
 }
@@ -202,7 +194,6 @@ void terminate()
   return;
 }*/
 
-
 void dispatch() {
   // Gera bilhete de loteria  ++
   // Percorre fila para achar os que mais se aproximam ++
@@ -216,27 +207,26 @@ void dispatch() {
   //bestTID = searchForBestTicket(&filaAptos, loteryTicket);
 
   //selectProcess(bestTID);
-  Processador->state = EXEC;
+  cpu_tcb->state = EXEC;
 
-  setcontext(&Processador->context);
+  setcontext(&cpu_tcb->context);
 }
 
 
-/*******************************************************************************
-********************************************************************************
-* *************  FUNÇÕES AUXILIARES E DE INICIALIZAÇÃO
-********************************************************************************
-*******************************************************************************/
-
+/***************************************
+*
+* FUNÇÕES AUXILIARES / INICIALIZAÇÃO
+*
+****************************************/
  /*int createDispatcherContext()
 {
   getcontext(&contextDispatcher);
   contextDispatcher.uc_link = 0;
-  contextDispatcher.uc_stack.ss_sp = (char*) malloc(stackSize);
+  contextDispatcher.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   if (contextDispatcher.uc_stack.ss_sp == NULL) {
     return ERROR;
   }
-  contextDispatcher.uc_stack.ss_size = stackSize;
+  contextDispatcher.uc_stack.ss_size = STACK_SIZE;
   makecontext(&contextDispatcher, (void(*)(void))dispatch, 0);
   return SUCCESS;
 
@@ -246,11 +236,11 @@ void dispatch() {
 {
   getcontext(&contextTerminator);
   contextTerminator.uc_link = 0;
-  contextTerminator.uc_stack.ss_sp = (char*) malloc(stackSize);
+  contextTerminator.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   if (contextTerminator.uc_stack.ss_sp == NULL) {
     return ERROR;
   }
-  contextTerminator.uc_stack.ss_size = stackSize;
+  contextTerminator.uc_stack.ss_size = STACK_SIZE;
   makecontext(&contextTerminator, (void(*)(void))terminate, 0);
   return SUCCESS;
 
@@ -268,13 +258,13 @@ void dispatch() {
 
 /*int createMainContext() {
   //gera Contexto da main
-  mainThread.tid = MAINTID;
-  mainThread.state = EXEC;
-  mainThread.ticket = generateTicket(); // Valor dummie
+  main_thread.tid = MAIN_TID;
+  main_thread.state = EXEC;
+  main_thread.ticket = generateTicket(); // Valor dummie
 
-  getcontext(&mainThread.context);
+  getcontext(&main_thread.context);
 
-  CPU = &mainThread;
+  CPU = &main_thread;
   if (CPU) {
     printf("Adicionou a CPU!\n");
     return SUCCESS;
@@ -293,13 +283,13 @@ void dispatch() {
 
 /*int createMainContext() {
   //gera Contexto da main
-  mainThread.tid = MAINTID;
-  mainThread.state = EXEC;
-  mainThread.ticket = generateTicket(); // Valor dummie
+  main_thread.tid = MAIN_TID;
+  main_thread.state = EXEC;
+  main_thread.ticket = generateTicket(); // Valor dummie
 
-  getcontext(&mainThread.context);
+  getcontext(&main_thread.context);
 
-  CPU = &mainThread;
+  CPU = &main_thread;
   if (CPU) {
     printf("Adicionou a CPU!\n");
     return SUCCESS;
@@ -342,12 +332,12 @@ int init_queues() {
 
 int init_main_thread_context() { 
   //current_thread_context = (TCB_t*)criarTCB(0, current_thread_context);
-  mainThread.id = 0;
-  mainThrad.state = PROCST_EXEC;
-  mainThread.ticket = 0;  // nao se usa a prioridade nessa caso
+  main_thread.id = 0;
+  main_thread.state = PROCST_EXEC;
+  main_thread.ticket = 0;  // nao se usa a prioridade nessa caso
 
-  getcontext(&mainThread.context);
-  Processador = &mainThread;
+  getcontext(&main_thread.context);
+  cpu_tcb = &main_thread;
 
   if (Escalonador == NULL) {
     return 1; //erro
@@ -359,12 +349,12 @@ int create_context_dispacher() {
   getcontext(&context_dispatcher);
   
   context_dispatcher.uc_link = 0;
-  context_dispatcher.uc_stack.ss_sp = (char*) malloc(stackSize);
+  context_dispatcher.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
 
   if (context_dispatcher.uc_stack.ss_sp == NULL) {
     return 1; //erro
   }
-  context_dispatcher.uc_stack.ss_size = stackSize;
+  context_dispatcher.uc_stack.ss_size = STACK_SIZE;
   makecontext(&context_dispatcher, (void(*)(void))dispatch, 0); // contexto para funcao dispatch()
   return 0;
 
@@ -374,11 +364,11 @@ int create_context_finish() {
   getcontext(&context_finish);
 
   context_finish.uc_link = 0;
-  context_finish.uc_stack.ss_sp = (char*) malloc(stackSize);
+  context_finish.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   if (context_finish.uc_stack.ss_sp == NULL) {
     return 1; //erro
   }
-  context_finish.uc_stack.ss_size = stackSize;
+  context_finish.uc_stack.ss_size = STACK_SIZE;
   makecontext(&context_finish, (void(*)(void))terminate, 0);
   return 0;
 }
@@ -445,23 +435,26 @@ int initialize() {
 
 }
 
+void check_initialized() {
+	if (!initialized) {
+		initialized = initialize();
+		if (initialized == ERROR) {
+			return ERROR;
+		}
+	}
+	return SUCCESS;
+}
 
+/***************************************
+*
+* PRIMITIVAS CTHREAD
+*
+****************************************/
 
+int ccreate(void* (*start)(void*), void *arg){
 
-
-/*******************************************************************************
-********************************************************************************
-* **************  FUNÇÕES QUE DEVEM SER NECESSARIAMENTE IMPLEMENTADAS
-********************************************************************************
-*******************************************************************************/
-int ccreate(void* (*start)(void*), void *arg)
-{
-
-  if (uninitializedDependencies == 1) {
-    uninitializedDependencies = initialize();
-    if (uninitializedDependencies == ERROR) {
-      return ERROR;
-    }
+  if (check_initialized() == ERROR) {
+	  return ERROR;
   }
 
   TCB_t *newThread = (TCB_t*) malloc(sizeof(TCB_t));
@@ -471,12 +464,12 @@ int ccreate(void* (*start)(void*), void *arg)
 
   getcontext(&newThread->context);
 
-  newThread->context.uc_stack.ss_sp = (char*) malloc(stackSize);
+  newThread->context.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
 
   if (newThread->context.uc_stack.ss_sp == NULL) {
     return ERROR; // Erro ao alocar espaço para thread
   }
-  newThread->context.uc_stack.ss_size = stackSize;
+  newThread->context.uc_stack.ss_size = STACK_SIZE;
   newThread->context.uc_link = &contextTerminator;
 
   makecontext(&newThread->context, (void(*)(void))start, 1, arg);
@@ -495,8 +488,7 @@ int ccreate(void* (*start)(void*), void *arg)
   }
 }
 
-int cjoin(int tid)
-{
+int cjoin(int tid){
   // VERIFICA DE tid existe na filaAptos ou filaBloqueados ++
   // VERIFICA SE tid JÁ EXISTE NA filaJoin, ou seja, 
   //      se uma thread já está esperando por esse tid
@@ -527,17 +519,13 @@ int cjoin(int tid)
   }   
 }
 
-int cyield(void)
-{
+int cyield(void){
   //MUDA ESTADO PARA APTO
   //RETIRA DA CPU
   //FAZ SWAP CONTEXT COM DISPATCHER
 
-  if (uninitializedDependencies == 1) {
-    uninitializedDependencies = initialize();
-    if (uninitializedDependencies == ERROR) {
-      return ERROR;
-    }
+  if (check_initialized() == ERROR) {
+	  return ERROR;
   }
 
   CPU->state = APTO;
@@ -550,13 +538,10 @@ int cyield(void)
 
 }
 
-int csem_init(csem_t *sem, int count)
-{
-  if (uninitializedDependencies == 1) {
-    uninitializedDependencies = initialize();
-    if (uninitializedDependencies == ERROR) {
-      return ERROR;
-    }
+int csem_init(csem_t *sem, int count){
+
+  if (check_initialized() == ERROR) {
+	  return ERROR;
   }
 
   if(!sem || count < 0){
@@ -569,11 +554,10 @@ int csem_init(csem_t *sem, int count)
   return SUCCESS;
 }
 
-int cwait(csem_t *sem)
-{
-  if (uninitializedDependencies == 1) {
-    uninitializedDependencies = initialize();
-    if (uninitializedDependencies == ERROR) {
+int cwait(csem_t *sem){
+  if (!initialized) {
+    initialized = initialize();
+    if (initialized == ERROR) {
       return ERROR;
     }
   }
@@ -608,13 +592,10 @@ int cwait(csem_t *sem)
   return SUCCESS;
 }
 
-int csignal(csem_t *sem)
-{
-  if (uninitializedDependencies == 1) {
-    uninitializedDependencies = initialize();
-    if (uninitializedDependencies == ERROR) {
-      return ERROR;
-    }
+int csignal(csem_t *sem){
+
+  if (check_initialized() == ERROR) {
+	  return ERROR;
   }
 
   // Adiciona 1 ao counter ++
@@ -649,17 +630,16 @@ int csignal(csem_t *sem)
   return SUCCESS;
 }
 
-int cidentify(char *name, int size)
-{
-  char groupName[] = "Nome: Filipe Joner Cartao: 208840\nNome: Jean Andrade Cartao: 252846\nNome: Rodrigo Dal Ri Cartao: 244936";
-  int realSize = sizeof(groupName);
+int cidentify(char *name, int size){
+  char students[] = "Rafael Amantea - 228433\n Mauricio Carmelo - xxxxxx";
+  int realSize = sizeof(students);
   int i = 0;
   if (size <= 0 || size > realSize) {
     return ERROR;
   }
 
   while (i < size) {
-    *name = groupName[i];
+    *name = students[i];
     name++;
     i++;
   }
@@ -667,9 +647,8 @@ int cidentify(char *name, int size)
 }
 
 
-
-/*******************************************************************************
-********************************************************************************
-* ******************************     FUNÇÕES DE TESTESS
-********************************************************************************
-*******************************************************************************/
+/***************************************
+*
+* FUNÇÕES TESTE
+*
+****************************************/
