@@ -14,11 +14,11 @@
 #define SUCCESS 0
 #define ERROR -1
 
-#define CRIACAO 0
-#define APTO  1
-#define EXEC  2
-#define BLOQ  3
-#define TERMINO 4
+#define PROCST_CRIACAO  0
+#define PROCST_APTO 1
+#define PROCST_EXEC 2
+#define PROCST_BLOQ 3
+#define PROCST_TERMINO  4
 
 #define stackSize SIGSTKSZ
 #define MAINTID 0
@@ -28,18 +28,21 @@
 ************/
 
 // Contextos para execução de funções de escalonador e de finalizador de threads
-ucontext_t contextDispatcher, contextTerminator;
+//ucontext_t contextDispatcher, contextTerminator;
 
 int tid = 1; //Mantém tid global para enumerar threads
 
 
-BLOCK_join *joinPtr; //Ponteiro criado para iterar sobre fila de bloqueados por Join
-TCB_t *CPU; //Ponteiro criada para "simular" a CPU;
-TCB_t mainThread;
-FILA2 filaAptos;
-FILA2 filaBloqueados;
-FILA2 filaJoin;
+//BLOCK_join *joinPtr; //Ponteiro criado para iterar sobre fila de bloqueados por Join
+//TCB_t *CPU; //Ponteiro criada para "simular" a CPU;
+//FILA2 filaAptos;
+//FILA2 filaBloqueados;
+//FILA2 filaJoin;
 int uninitializedDependencies = 1;
+
+/*
+*** NOSSAS VARIÁVEIS
+*/
 
 //Filas 
 FILA2 ready_very_high;
@@ -57,6 +60,15 @@ PFILA2 it_ready_low;
 
 PFILA2 it_blocked;
 
+//Simboliza o processador
+TCB_t *Processador;
+
+//main thread
+TCB_t mainThread;
+
+//context do dispatcher
+ucontext_t context_dispatcher;
+ucontext_t context_finish;
 
 
 /*******************************************************************************
@@ -162,12 +174,12 @@ void terminate()
   //                                DESBLOQUEIA O PROCESSO;
   // VERIFICAR FILA DE SEMÁFORO -> CWAIT() / CSIGNAL()
   // RETIRA PROCESSO DE ESTADO EXECUTANDO
-  verifyJoinedProcesses(CPU->tid);
+  verifyJoinedProcesses(Processador->tid);
   clearCPU();
-  setcontext(&contextDispatcher);
+  setcontext(&context_dispatcher);
 }
 
-void selectProcess(int bestTID){
+/*void selectProcess(int bestTID){
   int first = FirstFila2(&filaAptos);
   if ( first == SUCCESS){
     CPU = (TCB_t *) GetAtIteratorFila2(&filaAptos);
@@ -188,24 +200,25 @@ void selectProcess(int bestTID){
     }
   }
   return;
-}
+}*/
 
 
-void dispatch()
-{
+void dispatch() {
   // Gera bilhete de loteria  ++
   // Percorre fila para achar os que mais se aproximam ++
   // Seleciona a thread a ser executada ++
   // retira ela da fila de aptos ++
   // faz swap para o contexto selecionado ++
-  int loteryTicket = generateTicket();
-  int bestTID;
-  bestTID = searchForBestTicket(&filaAptos, loteryTicket);
+  //int loteryTicket = generateTicket();
+  //int bestTID;
+  
 
-  selectProcess(bestTID);
-  CPU->state = EXEC;
+  //bestTID = searchForBestTicket(&filaAptos, loteryTicket);
 
-  setcontext(&CPU->context);
+  //selectProcess(bestTID);
+  Processador->state = EXEC;
+
+  setcontext(&Processador->context);
 }
 
 
@@ -215,7 +228,7 @@ void dispatch()
 ********************************************************************************
 *******************************************************************************/
 
-int createDispatcherContext()
+ /*int createDispatcherContext()
 {
   getcontext(&contextDispatcher);
   contextDispatcher.uc_link = 0;
@@ -227,9 +240,9 @@ int createDispatcherContext()
   makecontext(&contextDispatcher, (void(*)(void))dispatch, 0);
   return SUCCESS;
 
-}
+}*/
 
-int createTerminatorContext()
+/*int createTerminatorContext()
 {
   getcontext(&contextTerminator);
   contextTerminator.uc_link = 0;
@@ -241,20 +254,19 @@ int createTerminatorContext()
   makecontext(&contextTerminator, (void(*)(void))terminate, 0);
   return SUCCESS;
 
-}
+}*/
 
-int createBlockedQueue()
+/*int createBlockedQueue()
 {
   //Inicializa fila de bloqueados
   return createQueue(&filaBloqueados);
+}*/
 
-}
-
-int createJoinQueue() {
+/*int createJoinQueue() {
   return createQueue(&filaJoin);
-}
+}*/
 
-int createMainContext() {
+/*int createMainContext() {
   //gera Contexto da main
   mainThread.tid = MAINTID;
   mainThread.state = EXEC;
@@ -271,41 +283,153 @@ int createMainContext() {
     return ERROR;
   }
 
-}
+}*/
 
-
-int createReadyQueue()
+/*int createReadyQueue()
 {
   //Inicializa fila de aptos
   return createQueue(&filaAptos);
+}*/
+
+/*int createMainContext() {
+  //gera Contexto da main
+  mainThread.tid = MAINTID;
+  mainThread.state = EXEC;
+  mainThread.ticket = generateTicket(); // Valor dummie
+
+  getcontext(&mainThread.context);
+
+  CPU = &mainThread;
+  if (CPU) {
+    printf("Adicionou a CPU!\n");
+    return SUCCESS;
+  }
+  else {
+    return ERROR;
+  }
+}*/
+
+int init_queues() {
+  it_ready_very_high = &ready_very_high;
+  it_ready_high = &ready_high;
+  it_ready_medium = &ready_medium;
+  it_ready_low = &ready_low;
+  it_blocked = &blocked;
+  
+  if( CreateFila2( it_ready_very_high ) ) {
+    printf("Erro ao criar fila apto - VERY HIGH\n");
+    return 1; //erro
+  } 
+  if( CreateFila2( it_ready_high ) ) {
+    printf("Erro ao criar fila apto - HIGH\n");
+    return 1; //erro
+  } 
+  if( CreateFila2( it_ready_medium ) ) {
+    printf("Erro ao criar fila apto - MEDIUM\n");
+    return 1; //erro
+  } 
+  if( CreateFila2( it_ready_low ) ) {
+    printf("Erro ao criar fila apto - LOW\n");
+    return 1; //erro
+  }
+  if( CreateFila2( it_blocked ) ) {
+    printf("Erro ao criar fila bloqueados\n");
+    return 1; //erro
+  }
+  
+  return 0;
 }
 
-int initialize()
-{
+int init_main_thread_context() { 
+  //current_thread_context = (TCB_t*)criarTCB(0, current_thread_context);
+  mainThread.id = 0;
+  mainThrad.state = PROCST_EXEC;
+  mainThread.ticket = 0;  // nao se usa a prioridade nessa caso
+
+  getcontext(&mainThread.context);
+  Processador = &mainThread;
+
+  if (Escalonador == NULL) {
+    return 1; //erro
+  }
+  return 0;
+}
+
+int create_context_dispacher() {
+  getcontext(&context_dispatcher);
+  
+  context_dispatcher.uc_link = 0;
+  context_dispatcher.uc_stack.ss_sp = (char*) malloc(stackSize);
+
+  if (context_dispatcher.uc_stack.ss_sp == NULL) {
+    return 1; //erro
+  }
+  context_dispatcher.uc_stack.ss_size = stackSize;
+  makecontext(&context_dispatcher, (void(*)(void))dispatch, 0); // contexto para funcao dispatch()
+  return 0;
+
+}
+
+int create_context_finish() {
+  getcontext(&context_finish);
+
+  context_finish.uc_link = 0;
+  context_finish.uc_stack.ss_sp = (char*) malloc(stackSize);
+  if (context_finish.uc_stack.ss_sp == NULL) {
+    return 1; //erro
+  }
+  context_finish.uc_stack.ss_size = stackSize;
+  makecontext(&context_finish, (void(*)(void))terminate, 0);
+  return 0;
+}
+
+int initialize() {
   // Criar MainContext
   // Criar fila de bloqueados
   // Criar fila de aptos
   // Criar threads de dispatcher e terminate
   // Fila de semáforos irá ser criada apenas quando for necessária
 
-  int dispatcherContextCreated;
-  int terminateContextCreated;
+  //int dispatcherContextCreated;
+  //int terminateContextCreated;
 
-  int blockedQueueinitilized;
-  int joinQueueinitilized;
-  int readyQueueinitilized;
-  int mainContextCreated;
+  //int blockedQueueinitilized;
+  //int joinQueueinitilized;
+  //int readyQueueinitilized;
+  //int mainContextCreated;
+  //blockedQueueinitilized = createBlockedQueue();
+  //joinQueueinitilized = createJoinQueue();
+  //readyQueueinitilized = createReadyQueue();
 
+  // inicialização das filas
+  if ( init_queues() ){
+    printf("Erro ao iniciar as filas\n");
+    return 1;
+  }
 
+  // inicialização do context da main_thread
+  if( init_main_thread_context() ) {
+    printf("Erro ao iniciar o main context\n");
+    return 1;
+  }
 
-  blockedQueueinitilized = createBlockedQueue();
-  joinQueueinitilized = createJoinQueue();
-  readyQueueinitilized = createReadyQueue();
-  mainContextCreated = createMainContext();
-  dispatcherContextCreated = createDispatcherContext();
-  terminateContextCreated = createTerminatorContext();
+  // criar contexto para o dispacher
+  if ( create_context_dispacher() ) {
+    printf("Erro ao criar um contexto para o dispatcher\n");
+    return 1;
+  }
 
-  if (mainContextCreated == ERROR ||
+  // criar contexto para finalização
+  if( create_context_finish() ) {
+    printf("Erro ao criar um contexto para a funcao finish\n");
+    return 1;
+  }
+
+  //mainContextCreated = createMainContext();
+  //dispatcherContextCreated = createDispatcherContext();
+  //terminateContextCreated = createTerminatorContext();
+
+  /*if (mainContextCreated == ERROR ||
           blockedQueueinitilized == ERROR ||
           joinQueueinitilized == ERROR ||
           readyQueueinitilized == ERROR ||
@@ -315,7 +439,9 @@ int initialize()
   }
   else {
     return SUCCESS;
-  }
+  }*/
+
+  return 0;
 
 }
 
