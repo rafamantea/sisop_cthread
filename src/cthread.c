@@ -495,6 +495,40 @@ int ccreate (void *(*start)(void *), void *arg, int prio){
     return new_thread->tid;
 }
 
+<<<<<<< HEAD
+int csetprio(int tid, int prio){
+  // procurar em cada uma das filas de apto
+
+  if( !searchForTid(it_ready_very_high, tid) ) { // se a thread estiver na fila VH
+    changePriority(it_ready_very_high, prio);
+    return SUCCESS;
+  }
+
+  if( !searchForTid(it_ready_high, tid) ) { // se a thread estiver na fila H
+    changePriority(it_ready_high, prio);
+    return SUCCESS;
+  }
+
+  if( !searchForTid(it_ready_medium, tid) ) { // se a thread estiver na fila M
+    changePriority(it_ready_medium, prio);
+    return SUCCESS;
+  }
+
+  if( !searchForTid(it_ready_low, tid) ) { // se a thread estiver na fila L
+    changePriority(it_ready_low, prio);
+    return SUCCESS;
+  }
+  
+  if( !searchForTid(it_blocked, tid) ) { // se a thread estiver na fila Blocked
+    changePriority(it_blocked, prio);
+    return SUCCESS;
+  }  
+
+  return ERROR;
+}
+
+
+=======
 /**
 1. Verifica se TID existe nas filas de prioridade APTOS ou Bloqueados.
 2. Verifica se TID já existe na fila de join, ou seja, se alguma thread já está esperando por esse tid.
@@ -503,6 +537,7 @@ int ccreate (void *(*start)(void *), void *arg, int prio){
 5. Salva contexto atual
 6. Seta contexto p/ dispatcher
 **/
+>>>>>>> 4c32644b4f4251c5c77bb897693c29ecd3299e9c
 int cjoin(int tid){
 
 	if (tid_exists(tid) == ERROR) {
@@ -666,110 +701,3 @@ int tid_exists(int tid) {
   return SUCCESS;
 }
 
-int add_ready_by_priority(int prio, TCB_t* tcb) {
-	switch(prio) {
-		case VERY_HIGH:
-			return insertTCB_at_queue(ready_very_high, tcb);
-		case HIGH:
-			return insertTCB_at_queue(ready_high, tcb);
-		case MEDIUM:
-			return insertTCB_at_queue(ready_medium, tcb);
-		case LOW:
-			return insertTCB_at_queue(ready_low, tcb);
-		default:
-			return 1;
-	}
-}
-
-int add_ready_by_priority(TCB_t* tcb) {
-	return add_ready_by_priority(tcb->ticket, tcb);
-}
-
-int blocked_to_ready(int tid) {
-    TCB_t* tcb;
-    TCB_t* tcb_aux = (TCB_t*) malloc(sizeof(TCB_t));
-
-    if (FirstFila2(blocked) == 0){
-        tcb = (TCB_t*) GetAtIteratorFila2(blocked);
-        while(tcb != NULL){
-            if(tcb->tid == tid){
-                *tcb_aux = *tcb;
-                if (DeleteAtIteratorFila2(blocked) == 0){
-                    tcb_aux->state = PROCST_APTO;
-                    add_ready_by_priority(tcb_aux);
-                    return 0;
-                }
-                else{
-                    return -1;
-                }
-            }
-            NextFila2(blocked);
-            tcb = (TCB_t*) GetAtIteratorFila2(blocked);
-        }
-    }
-    return -1;	
-}
-
-int queue_has_tcb(PFILA2 queue, int tid){
-    TCB_t* tcb;
-
-    if (queue == NULL){
-        return 1;
-    }
-    if(FirstFila2(queue) == 0){
-
-        tcb = (TCB_t*)GetAtIteratorFila2(queue);
-        while(tcb != NULL && tcb->tid != tid){
-            if(NextFila2(queue) == 0){
-                tcb = (TCB_t*)GetAtIteratorFila2(queue);
-                if (tcb == NULL){
-                    return 1;
-                }
-            }
-            else{
-                return 1;
-            }
-        }
-        if (tcb->tid == tid){
-            return 0;
-        }
-    }
-    return 1;
-}
-
-TCB_t * get_tcb(PFILA2 queue, int tid) {
-	TCB_t* tcb;
-
-	if(FirstFila2(queue) == 0){
-		tcb = (TCB_t*)GetAtIteratorFila2(queue);
-		while(tcb != NULL && tcb->tid != tid){
-			if(NextFila2(queue) == 0){
-				tcb = (TCB_t*)GetAtIteratorFila2(queue);
-			}
-		}
-		if (tcb->tid == tid){
-			return tcb;
-		}
-	}
-	return NULL;
-}
-
-TCB_t * get_tcb_by_tid(int tid) {
-	if(queue_has_tcb(ready_very_high, tid) {
-		return get_tcb(ready_very_high, tid);
-	
-	} else if(queue_has_tcb(ready_high, tid)) {
-		return get_tcb(ready_high, tid);
-		
-	} else if(queue_has_tcb(ready_medium, tid)) {
-		return get_tcb(ready_medium, tid);
-		
-	} else if(queue_has_tcb(ready_low, tid)) {
-		return get_tcb(ready_low, tid);
-		
-	} else if(queue_has_tcb(blocked, tid)) {
-		return get_tcb(blocked, tid);
-	}
-	
-	return NULL;
-}

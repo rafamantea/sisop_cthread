@@ -135,6 +135,12 @@ int searchForTid(PFILA2 fila, int tid)
 
 }
 
+int changePriority(PFILA2 pfila, int prio) {
+  TCB_t *tcb;
+  tcb = (TCB_t *) GetAtIteratorFila2(pfila);
+  tcb->tid = prio;
+}
+
 int searchInFilaJoin(PFILA2 filaJoin, int tid) {
   int first;
   first = FirstFila2(filaJoin);
@@ -208,6 +214,9 @@ void runsThroughQueue(PFILA2 fila)
 
   }
 }
+
+
+// *****************************************************************
 
 
 

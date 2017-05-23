@@ -9,6 +9,8 @@
 #ifndef __cdata__
 #define __cdata__
 
+#include <ucontext.h>
+
 #define	PROCST_CRIACAO	0
 #define	PROCST_APTO	1
 #define	PROCST_EXEC	2
