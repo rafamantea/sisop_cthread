@@ -26,7 +26,22 @@ TCB_t *unjoin;
 /******************
 * FUNÇÕES AUXILIARES
 *******************/
-int createQueue(PFILA2 fila)
+
+TCB_t* criarTCB(int tid, ucontext_t contexto) {
+  TCB_t* tcb = malloc(sizeof(TCB_t));
+    tcb->tid = tid; 
+    tcb->state = PROCST_CRIACAO;
+    // salvar contexto no TCB
+    tcb->context = contexto;
+  
+  return tcb;
+}
+
+int adicionarNaFila(PFILA2 fila, PNODE2 pnodo) {
+  return AppendFila2(fila, pnodo);
+}
+
+/*int createQueue(PFILA2 fila)
 {
   //Inicializa fila de bloqueados
   int initializedQueue;
@@ -38,8 +53,7 @@ int createQueue(PFILA2 fila)
   else {
     return SUCCESS;
   }
-}
-
+}*/
 
 /*int generateTicket()
 {
