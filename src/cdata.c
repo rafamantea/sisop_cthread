@@ -46,60 +46,6 @@ int insertTCB_at_queue(PFILA2 fila, TCB_t* tcb) {
   return 0;
 }
 
-/*int createQueue(PFILA2 fila)
-{
-  //Inicializa fila de bloqueados
-  int initializedQueue;
-  initializedQueue = CreateFila2(fila);
-
-  if (initializedQueue == ERROR) {
-    return ERROR;
-  }
-  else {
-    return SUCCESS;
-  }
-}*/
-
-/*int generateTicket()
-{
-  unsigned int random = Random2();
-  int ticket = random % 256;
-  return ticket;
-}*/
-
-/*int searchForBestTicket(PFILA2 fila, int loteryTicket)
-{
-  // Procura tid de melhor TICKET da fila de aptos
-  TCB_t *tcb;
-  int bestTID;
-  int bestValue;
-
-  int first = FirstFila2(fila);
-
-  if (first == SUCCESS) {
-    tcb = (TCB_t*) GetAtIteratorFila2(fila);
-    bestValue = abs(tcb->ticket - loteryTicket);
-    bestTID = tcb->tid;
-    int iterator = 0;
-    while (iterator == 0) {
-      iterator = NextFila2(fila);
-      tcb = (TCB_t*) GetAtIteratorFila2(fila);
-
-      if (GetAtIteratorFila2(fila) == NULL) {
-        return bestTID;
-      }
-      if (abs(tcb->ticket - loteryTicket) < bestValue) {
-        bestValue = abs(tcb->ticket - loteryTicket);
-        bestTID = tcb->tid;
-      }
-    }
-    return bestTID;
-  }
-  else {
-    return ERROR;
-  }
-}*/
-
 int searchForTid(PFILA2 fila, int tid)
 {
   int first;
@@ -190,7 +136,6 @@ void deleteFromBlockedQueue(PFILA2 filaBloqueados, int tid){
   }
 }
 
-
 void runsThroughQueue(PFILA2 fila)
 {
   int work;
@@ -217,8 +162,6 @@ void runsThroughQueue(PFILA2 fila)
 
 
 // *****************************************************************
-
-
 
 
 int add_ready_by_priority(int prio, TCB_t* tcb) {
@@ -328,3 +271,15 @@ TCB_t * get_tcb_by_tid(int tid) {
   
   return NULL;
 }
+
+int tid_exists(int tid) {
+  if (searchForTid(it_ready_very_high, tid) == ERROR && searchForTid(it_ready_high, tid) == ERROR &&
+  searchForTid(it_ready_medium, tid) == ERROR && searchForTid(it_ready_low, tid) == ERROR &&
+  searchForTid(it_blocked, tid) == ERROR) {
+    
+    return ERROR;
+  }
+  
+  return SUCCESS;
+}
+
