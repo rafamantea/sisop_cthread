@@ -207,7 +207,7 @@ void dispatch() {
   //bestTID = searchForBestTicket(&filaAptos, loteryTicket);
 
   //selectProcess(bestTID);
-  cpu_tcb->state = EXEC;
+  cpu_tcb->state = PROCST_EXEC;
 
   setcontext(&cpu_tcb->context);
 }
