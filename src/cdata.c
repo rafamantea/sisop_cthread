@@ -13,11 +13,11 @@
 #define SUCCESS 0
 #define ERROR -1
 
-#define CRIACAO 0
-#define APTO  1
-#define EXEC  2
-#define BLOQ  3
-#define TERMINO 4
+#define PROCST_CRIACAO  0
+#define PROCST_APTO 1
+#define PROCST_EXEC 2
+#define PROCST_BLOQ 3
+#define PROCST_TERMINO  4
 
 #define stackSize SIGSTKSZ
 
@@ -26,7 +26,22 @@ TCB_t *unjoin;
 /******************
 * FUNÇÕES AUXILIARES
 *******************/
-int createQueue(PFILA2 fila)
+
+TCB_t* criarTCB(int tid, ucontext_t contexto) {
+  TCB_t* tcb = malloc(sizeof(TCB_t));
+    tcb->tid = tid; 
+    tcb->state = PROCST_CRIACAO;
+    // salvar contexto no TCB
+    tcb->context = contexto;
+  
+  return tcb;
+}
+
+int adicionarNaFila(PFILA2 fila, PNODE2 pnodo) {
+  return AppendFila2(fila, pnodo);
+}
+
+/*int createQueue(PFILA2 fila)
 {
   //Inicializa fila de bloqueados
   int initializedQueue;
@@ -38,17 +53,16 @@ int createQueue(PFILA2 fila)
   else {
     return SUCCESS;
   }
-}
+}*/
 
-
-int generateTicket()
+/*int generateTicket()
 {
   unsigned int random = Random2();
   int ticket = random % 256;
   return ticket;
-}
+}*/
 
-int searchForBestTicket(PFILA2 fila, int loteryTicket)
+/*int searchForBestTicket(PFILA2 fila, int loteryTicket)
 {
   // Procura tid de melhor TICKET da fila de aptos
   TCB_t *tcb;
@@ -79,7 +93,7 @@ int searchForBestTicket(PFILA2 fila, int loteryTicket)
   else {
     return ERROR;
   }
-}
+}*/
 
 int searchForTid(PFILA2 fila, int tid)
 {
