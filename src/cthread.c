@@ -141,8 +141,28 @@ void terminate(){
 
 void dispatch() {
 
-  cpu_tcb->state = PROCST_EXEC;
+  if(FirstFila2(it_ready_very_high) == SUCCESS) {
+	  int first = FirstFila2(it_ready_very_high);
+	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_very_high);
+	  DeleteAtIteratorFila2(it_ready_very_high);
+	  
+  } else if(FirstFila2(it_ready_high) == SUCCESS) {
+	  int first = FirstFila2(it_ready_high);
+	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_high);
+	  DeleteAtIteratorFila2(it_ready_high);
+	  
+  } else if(FirstFila2(it_ready_medium) == SUCCESS) {
+	  int first = FirstFila2(it_ready_medium);
+	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_medium);
+	  DeleteAtIteratorFila2(it_ready_medium);
+	  
+  } else if(FirstFila2(it_ready_low) == SUCCESS) {
+	  int first = FirstFila2(it_ready_low);
+	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_low);
+	  DeleteAtIteratorFila2(it_ready_low);
+  }
 
+  cpu_tcb->state = PROCST_EXEC;
   setcontext(&cpu_tcb->context);
 }
 
