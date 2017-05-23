@@ -25,7 +25,7 @@
 // Contextos para execução de funções de escalonador e de finalizador de threads
 //ucontext_t contextDispatcher, contextTerminator;
 
-int tid = 1; //Mantém tid global para enumerar threads
+int tid_count = 1; //Mantém tid global para enumerar threads
 
 
 //BLOCK_join *joinPtr; //Ponteiro criado para iterar sobre fila de bloqueados por Join
@@ -451,41 +451,39 @@ void check_initialized() {
 *
 ****************************************/
 
-int ccreate(void* (*start)(void*), void *arg){
+int ccreate (void *(*start)(void *), void *arg, int prio){
 
   if (check_initialized() == ERROR) {
 	  return ERROR;
   }
 
-  TCB_t *newThread = (TCB_t*) malloc(sizeof(TCB_t));
-  newThread->tid = tid;
-  newThread->state = APTO;
-  newThread->ticket = generateTicket(); // Valor dummie
+  TCB_t *new_thread = (TCB_t*) malloc(sizeof(TCB_t));
+  new_thread->tid = tid_count;
+  new_thread->state = PROCST_APTO;
+  new_thread->ticket = prio; 
 
-  getcontext(&newThread->context);
+  getcontext(&new_thread->context);
 
-  newThread->context.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
+  new_thread->context.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
 
-  if (newThread->context.uc_stack.ss_sp == NULL) {
+  if (new_thread->context.uc_stack.ss_sp == NULL) {
     return ERROR; // Erro ao alocar espaço para thread
   }
-  newThread->context.uc_stack.ss_size = STACK_SIZE;
-  newThread->context.uc_link = &contextTerminator;
+  new_thread->context.uc_stack.ss_size = STACK_SIZE;
+  new_thread->context.uc_link = &contextTerminator;
 
-  makecontext(&newThread->context, (void(*)(void))start, 1, arg);
+  makecontext(&new_thread->context, (void(*)(void))start, 1, arg);
 
+  tid_count++;
 
-  tid++;
+  int added_to_ready;
+  added_to_ready = add_ready_by_priority(tcb, prio);
 
-  int addedToReadyQueue;
-  addedToReadyQueue = AppendFila2(&filaAptos, (void *) newThread);
-  if (addedToReadyQueue == SUCCESS) {
-    // printf("Adicionou na fila de aptos!\n");
-    return newThread->tid;
-  }
-  else {
+  if (added_to_ready != SUCCESS) {
     return ERROR;
   }
+  
+    return new_thread->tid;
 }
 
 int cjoin(int tid){
