@@ -1,5 +1,6 @@
 #define _XOPEN_SOURCE 600
 
+
 #include "../include/support.h"
 #include "../include/cdata.h"
 #include "../include/cthread.h"
@@ -12,25 +13,72 @@
 #define SUCCESS 0
 #define ERROR -1
 
+#define CRIACAO 0
+#define APTO  1
+#define EXEC  2
+#define BLOQ  3
+#define TERMINO 4
+
 #define stackSize SIGSTKSZ
+
 
 TCB_t *unjoin;
 /******************
 * FUNÇÕES AUXILIARES
 *******************/
+int createQueue(PFILA2 fila)
+{
+  //Inicializa fila de bloqueados
+  int initializedQueue;
+  initializedQueue = CreateFila2(fila);
 
-TCB_t* criarTCB(int tid, ucontext_t contexto) {
-  TCB_t* tcb = malloc(sizeof(TCB_t));
-    tcb->tid = tid; 
-    tcb->state = PROCST_CRIACAO;
-    // salvar contexto no TCB
-    tcb->context = contexto;
-  
-  return tcb;
+  if (initializedQueue == ERROR) {
+    return ERROR;
+  }
+  else {
+    return SUCCESS;
+  }
 }
 
-int adicionarNaFila(PFILA2 fila, PNODE2 pnodo) {
-  return AppendFila2(fila, pnodo);
+
+int generateTicket()
+{
+  unsigned int random = Random2();
+  int ticket = random % 256;
+  return ticket;
+}
+
+int searchForBestTicket(PFILA2 fila, int loteryTicket)
+{
+  // Procura tid de melhor TICKET da fila de aptos
+  TCB_t *tcb;
+  int bestTID;
+  int bestValue;
+
+  int first = FirstFila2(fila);
+
+  if (first == SUCCESS) {
+    tcb = (TCB_t*) GetAtIteratorFila2(fila);
+    bestValue = abs(tcb->ticket - loteryTicket);
+    bestTID = tcb->tid;
+    int iterator = 0;
+    while (iterator == 0) {
+      iterator = NextFila2(fila);
+      tcb = (TCB_t*) GetAtIteratorFila2(fila);
+
+      if (GetAtIteratorFila2(fila) == NULL) {
+        return bestTID;
+      }
+      if (abs(tcb->ticket - loteryTicket) < bestValue) {
+        bestValue = abs(tcb->ticket - loteryTicket);
+        bestTID = tcb->tid;
+      }
+    }
+    return bestTID;
+  }
+  else {
+    return ERROR;
+  }
 }
 
 int searchForTid(PFILA2 fila, int tid)
@@ -68,14 +116,7 @@ int searchForTid(PFILA2 fila, int tid)
 
 }
 
-int changePriority(PFILA2 pfila, int prio) {
-  TCB_t *tcb;
-  tcb = (TCB_t *) GetAtIteratorFila2(pfila);
-  tcb->ticket = prio;
-  return 0;
-}
-
-/*int searchInFilaJoin(PFILA2 filaJoin, int tid) {
+int searchInFilaJoin(PFILA2 filaJoin, int tid) {
   int first;
   first = FirstFila2(filaJoin);
   if (first == 0) {
@@ -98,7 +139,7 @@ int changePriority(PFILA2 pfila, int prio) {
   }
 
   return SUCCESS;
-}*/
+}
 
 void deleteFromBlockedQueue(PFILA2 filaBloqueados, int tid){
   int first;
@@ -124,6 +165,7 @@ void deleteFromBlockedQueue(PFILA2 filaBloqueados, int tid){
   }
 }
 
+
 void runsThroughQueue(PFILA2 fila)
 {
   int work;
@@ -147,87 +189,3 @@ void runsThroughQueue(PFILA2 fila)
 
   }
 }
-
-
-// *****************************************************************
-
-
-
-
-/**
-int queue_has_tcb(PFILA2 queue, int tid){
-    TCB_t* tcb;
-
-    if (queue == NULL){
-        return 1;
-    }
-    if(FirstFila2(queue) == 0){
-
-        tcb = (TCB_t*)GetAtIteratorFila2(queue);
-        while(tcb != NULL && tcb->tid != tid){
-            if(NextFila2(queue) == 0){
-                tcb = (TCB_t*)GetAtIteratorFila2(queue);
-                if (tcb == NULL){
-                    return 1;
-                }
-            }
-            else{
-                return 1;
-            }
-        }
-        if (tcb->tid == tid){
-            return 0;
-        }
-    }
-    return 1;
-}*/
-/*
-TCB_t * get_tcb(PFILA2 queue, int tid) {
-  TCB_t* tcb;
-
-  if(FirstFila2(queue) == 0){
-    tcb = (TCB_t*)GetAtIteratorFila2(queue);
-    while(tcb != NULL && tcb->tid != tid){
-      if(NextFila2(queue) == 0){
-        tcb = (TCB_t*)GetAtIteratorFila2(queue);
-      }
-    }
-    if (tcb->tid == tid){
-      return tcb;
-    }
-  }
-  return NULL;
-}*/
-
-/*TCB_t * get_tcb_by_tid(int tid) {
-  if(queue_has_tcb(ready_very_high, tid) {
-    return get_tcb(ready_very_high, tid);
-  
-  } else if(queue_has_tcb(ready_high, tid)) {
-    return get_tcb(ready_high, tid);
-    
-  } else if(queue_has_tcb(ready_medium, tid)) {
-    return get_tcb(ready_medium, tid);
-    
-  } else if(queue_has_tcb(ready_low, tid)) {
-    return get_tcb(ready_low, tid);
-    
-  } else if(queue_has_tcb(blocked, tid)) {
-    return get_tcb(blocked, tid);
-  }
-  
-  return NULL;
-}
-*/
-
-/*int tid_exists(int tid) {
-  if (searchForTid(it_ready_very_high, tid) == ERROR && searchForTid(it_ready_high, tid) == ERROR &&
-  searchForTid(it_ready_medium, tid) == ERROR && searchForTid(it_ready_low, tid) == ERROR &&
-  searchForTid(it_blocked, tid) == ERROR) {
-    
-    return ERROR;
-  }
-  
-  return SUCCESS;
-}*/
-

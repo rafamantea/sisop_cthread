@@ -25,18 +25,18 @@ int main(int argc, char *argv[]) {
 	int i;
 
 
-	id0 = ccreate(func0, (void *)&i, 1);
+	id0 = ccreate(func0, (void *)&i);
 	printf("Eu sou a thread de TID: %d\n", id0);
-	id1 = ccreate(func1, (void *)&i, 2);
+	id1 = ccreate(func1, (void *)&i);
 	printf("Eu sou a thread de TID: %d\n", id1);
-	id2 = ccreate(func1, (void *)&i, 3);
+	id2 = ccreate(func1, (void *)&i);
 	printf("Eu sou a thread de TID: %d\n", id2);
-	id3 = ccreate(func1, (void *)&i, 0);
+	id3 = ccreate(func1, (void *)&i);
 	printf("Eu sou a thread de TID: %d\n", id3);
-	id4 = ccreate(func1, (void *)&i, 2);
+	id4 = ccreate(func1, (void *)&i);
 	printf("Eu sou a thread de TID: %d\n", id4);
 
-	printf("Eu sou a main apos a criacao de threads\n");
+	printf("Eu sou a main após a criação de threads\n");
 
 	return 0;
 }

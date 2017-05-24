@@ -15,10 +15,10 @@ void* fatorial(void *i) {
 
      n = *(int *)i;
 
-     for (; n < 1; --n)
+     for (; n > 1; --n)
          fat = n * fat;
 
-     printf("Fatorial de %d:\n", fat);
+     printf("Fatorial de %d: %d\n", *(int *)i, fat);
      return;
 }
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
 	id0 = ccreate(fatorial, (void *)&i);
 	id1 = ccreate(fibonnaci, (void *)&i);
 
-        printf("Threads fatorial e Fibonnaci criadas...\n");
+    printf("Threads fatorial e Fibonnaci criadas...\n");
 
 	cjoin(id0);
 	cjoin(id1);
