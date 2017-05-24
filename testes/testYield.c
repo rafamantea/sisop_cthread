@@ -16,7 +16,6 @@ int main(int argc, char *argv[]) {
 	int j0, j1, j2, j3, j4, j5;
 	int i = 1;
 
-
 	id0 = ccreate(func0, (void *)&i, 1);
 	id1 = ccreate(func0, (void *)&i, 2);
 	id2 = ccreate(func0, (void *)&i, 3);

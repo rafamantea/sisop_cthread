@@ -1,6 +1,5 @@
 #define _XOPEN_SOURCE 600
 
-
 #include "../include/support.h"
 #include "../include/cdata.h"
 #include "../include/cthread.h"
@@ -28,7 +27,6 @@
 ****************************************/
 
 int tid_count = 1; //Mantém tid global para enumerar threads
-
 
 //BLOCK_join *joinPtr; //Ponteiro criado para iterar sobre fila de bloqueados por Join
 
@@ -141,41 +139,14 @@ void terminate(){
 
 void dispatch() {
 
-  PNODE2 pnodo;
-  
-
-  //setcontext(&(((TCB_t*)(pnodo1->node))->context));
-
-
-
-  if(FirstFila2(it_ready_very_high) == SUCCESS) {
-	  FirstFila2(it_ready_very_high);
-    pnodo = GetAtIteratorFila2(it_ready_very_high);
-	  cpu_tcb = ((TCB_t*)(pnodo->node));
-
-    //cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_very_high);
-    FirstFila2(it_ready_very_high);
-	  DeleteAtIteratorFila2(it_ready_very_high);
-	  
-  } else if(FirstFila2(it_ready_high) == SUCCESS) {
-	  FirstFila2(it_ready_high);
-	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_high);
-	  DeleteAtIteratorFila2(it_ready_high);
-	  
-  } else if(FirstFila2(it_ready_medium) == SUCCESS) {
-	  FirstFila2(it_ready_medium);
-	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_medium);
-	  DeleteAtIteratorFila2(it_ready_medium);
-	  
-  } else if(FirstFila2(it_ready_low) == SUCCESS) {
-	  FirstFila2(it_ready_low);
-	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_low);
-	  DeleteAtIteratorFila2(it_ready_low);
-  }
-
+ int first = FirstFila2(it_ready_very_high);
+  if ( first == SUCCESS){
+    cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_very_high);
+	DeleteAtIteratorFila2(&filaAptos);
+    }
+ 
   cpu_tcb->state = PROCST_EXEC;
-
-  setcontext(&cpu_tcb->context);
+  setcontext(&(cpu_tcb->context));
 }
 
 
@@ -220,10 +191,9 @@ int init_queues() {
 }
 
 int init_main_thread_context() { 
-  //current_thread_context = (TCB_t*)criarTCB(0, current_thread_context);
   main_thread.tid = 0;
   main_thread.state = PROCST_EXEC;
-  main_thread.ticket = 0;  // nao se usa a prioridade nessa caso
+  main_thread.ticket = 0;
 
   getcontext(&main_thread.context);
   cpu_tcb = &main_thread;
@@ -289,15 +259,6 @@ int initialize() {
   return 1;
 }
 
-/*int check_initialized() {
-	if (!initialized) {
-		initialized = initialize();
-		if (initialized == ERROR) {
-			return ERROR;
-		}
-	}
-	return SUCCESS;
-}*/
 
 /***************************************
 *
@@ -412,17 +373,14 @@ int cjoin(int tid){
 */
 int cyield(void){
 
-  /*if (check_initialized() == ERROR) {
-	  return ERROR;
-  }*/
   if (initialized == 0) { // se ainda nao foi inicializado
     printf("\nEscalonador ainda não foi inicializado.\n");
     return ERROR;
   }
 
-  cpu_tcb->state = PROCST_APTO;
-
-  if( (has_thread_in_ready_queue() == SUCCESS) && (add_ready_by_priority(cpu_tcb) == SUCCESS) ){
+	cpu_tcb->state = APTO;
+  if( FirstFila2(it_ready_very_high) == SUCCESS &&
+      AppendFila2(it_ready_very_high, (void *) cpu_tcb) == SUCCESS){
       swapcontext(&cpu_tcb->context, &context_dispatcher);
       return SUCCESS;
   }

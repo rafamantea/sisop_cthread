@@ -1,6 +1,5 @@
 #define _XOPEN_SOURCE 600
 
-
 #include "../include/support.h"
 #include "../include/cdata.h"
 #include "../include/cthread.h"
@@ -14,7 +13,6 @@
 #define ERROR -1
 
 #define stackSize SIGSTKSZ
-
 
 TCB_t *unjoin;
 /******************
@@ -34,8 +32,6 @@ TCB_t* criarTCB(int tid, ucontext_t contexto) {
 int adicionarNaFila(PFILA2 fila, PNODE2 pnodo) {
   return AppendFila2(fila, pnodo);
 }
-
-
 
 int searchForTid(PFILA2 fila, int tid)
 {
