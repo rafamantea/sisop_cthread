@@ -17,30 +17,30 @@ int main(int argc, char *argv[]) {
 	int i = 1;
 
 
-	id0 = ccreate(func0, (void *)&i);
-	id1 = ccreate(func0, (void *)&i);
-	id2 = ccreate(func0, (void *)&i);
-	id3 = ccreate(func0, (void *)&i);
-	id4 = ccreate(func0, (void *)&i);
+	id0 = ccreate(func0, (void *)&i, 1);
+	id1 = ccreate(func0, (void *)&i, 2);
+	id2 = ccreate(func0, (void *)&i, 3);
+	id3 = ccreate(func0, (void *)&i, 0);
+	id4 = ccreate(func0, (void *)&i, 3);
 
 	j0 = cyield();
 	puts("Voltou do primeiro Cyield() MAIN\n");
-	printf("Valor de retorno de cyield é: %d\n", j0);
+	printf("Valor de retorno de cyield eh: %d\n", j0);
 	j1 = cyield();
 	puts("Voltou do segundo Cyield() MAIN\n");
-	printf("Valor de retorno de cyield é: %d\n", j1);
+	printf("Valor de retorno de cyield eh: %d\n", j1);
 	j2 = cyield();
 	puts("Voltou do terceiro Cyield() MAIN\n");
-	printf("Valor de retorno de cyield é: %d\n", j2);
+	printf("Valor de retorno de cyield eh: %d\n", j2);
 	j3 = cyield();
 	puts("Voltou do quato Cyield() MAIN\n");
-	printf("Valor de retorno de cyield é: %d\n", j3);
+	printf("Valor de retorno de cyield eh: %d\n", j3);
 	j4 = cyield();
 	puts("Voltou do quinto Cyield() MAIN para finalizar o programa.\n");
-	printf("Valor de retorno de cyield é: %d\n", j4);
+	printf("Valor de retorno de cyield eh: %d\n", j4);
 	j5 = cyield();
 	puts("Voltou do sexto Cyield() MAIN para finalizar o programa.\n");
-	printf("Valor de retorno de cyield é: %d\n", j5);
+	printf("Valor de retorno de cyield eh: %d\n", j5);
 
 	printf("Eu sou a main voltando para terminar o programa\n");
 }
