@@ -141,10 +141,20 @@ void terminate(){
 
 void dispatch() {
 
+  PNODE2 pnodo;
+  
+
+  //setcontext(&(((TCB_t*)(pnodo1->node))->context));
+
+
+
   if(FirstFila2(it_ready_very_high) == SUCCESS) {
 	  FirstFila2(it_ready_very_high);
-	  cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_very_high);
-    //FirstFila2(it_ready_very_high);
+    pnodo = GetAtIteratorFila2(it_ready_very_high);
+	  cpu_tcb = ((TCB_t*)(pnodo->node));
+
+    //cpu_tcb = (TCB_t *) GetAtIteratorFila2(it_ready_very_high);
+    FirstFila2(it_ready_very_high);
 	  DeleteAtIteratorFila2(it_ready_very_high);
 	  
   } else if(FirstFila2(it_ready_high) == SUCCESS) {
@@ -164,8 +174,6 @@ void dispatch() {
   }
 
   cpu_tcb->state = PROCST_EXEC;
-
-  printf("\n%d\n", &cpu_tcb->tid);
 
   setcontext(&cpu_tcb->context);
 }
